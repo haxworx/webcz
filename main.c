@@ -3,36 +3,44 @@
 
 int main(void)
 {
-   Web_Cz *w = WebCz_New();
-   cookie_t *c = calloc(1, sizeof(cookie_t));
-   c->name = "AL";
-   c->value = "Hello";
-   w->cookie_add(c);
+   const char *offering;
+   Web_Cz *web_obj;
+   int count = 0;
+
+   web_obj = web_cz_new();
+
+   cookie_t *c = web_obj->cookie_new("AL", "Really nice!");
+   c->path = "/";
+   c->expires = 3600;
+   web_obj->cookie_add(c);
    
-   cookie_t *c2 = calloc(1, sizeof(cookie_t));
-   c2->name = "Neil";
-   c2->value = "Whiskey!";
-   w->cookie_add(c2);
-   if (!w->get())
-     exit(0);
-   const char *offering = w->param("offering");
-   int count = atoi(w->param("count"));
-   w->content_type("text/plain");
+   cookie_t *c2 = web_obj->cookie_new("Neil", "Whiskey!");
+   web_obj->cookie_add(c2);
+
+   web_obj->get();
+
+   offering = web_obj->param("offering");
+   const char *tmp = web_obj->param("count");
+   if (tmp)
+     count = atoi(tmp);
+
+   web_obj->content_type("text/plain");
   
    if (offering && count)
      printf("it is %s and %d\n", offering, count);
-   
-   cookie_t *test = w->cookie("AL");
+
+   cookie_t *test = web_obj->cookie("Neil");
    if (test) 
      {
         printf("Got value %s\n", test->value);  
      } 
-   test = w->cookie("Neil");
+   test = web_obj->cookie("AL");
    if (test)
      {
         printf("Got value %s\n", test->value);
      }
 
-   w->free();
-   exit(0);
+   web_obj->free();
+
+   return 0;
 }

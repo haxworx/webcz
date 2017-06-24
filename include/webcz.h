@@ -23,7 +23,6 @@ struct _cookie_t {
    char *value;
    char *domain;
    char *path;
-   char *expiry;
    time_t expires;
    cookie_t *next;
 };
@@ -32,7 +31,8 @@ typedef void (*wcz_fn_free)(void);
 typedef bool (*wcz_fn_get)(void);
 typedef char *(*wcz_fn_param)(const char *); 
 typedef cookie_t *(*wcz_fn_cookie)(const char *);
-typedef cookie_t *(*wcz_fn_cookie_add)(cookie_t *cookie);
+typedef cookie_t *(*wcz_fn_cookie_add)(cookie_t *);
+typedef cookie_t *(*wcz_fn_cookie_new)(const char *, const char *);
 typedef void (*wcz_fn_content_type)(const char *);
 
 typedef struct _Web_Cz {
@@ -43,11 +43,14 @@ typedef struct _Web_Cz {
    wcz_fn_content_type content_type;
    wcz_fn_free free;
 
-   param_t *paramaters;
+   wcz_fn_cookie_new cookie_new;
+
+   param_t *parameters;
    cookie_t *cookies;
 } Web_Cz;
 
 cookie_t *web_cz_cookie(const char *name);
+
 cookie_t *web_cz_cookie_add(cookie_t *cookie);
 
 char *web_cz_param(const char *name);
@@ -56,7 +59,9 @@ bool web_cz_get(void);
 
 void web_cz_content_type(const char *type);
 
-Web_Cz *WebCz_New(void);
+Web_Cz *web_cz_new(void);
+
+Web_Cz *web_cz_global_object_get();
 
 void web_cz_free(void);
 

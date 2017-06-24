@@ -1,8 +1,9 @@
 #include "../include/webcz.h"
+
 Web_Cz *_web_cz_global_object = NULL;
 
-static Web_Cz *
-webcz_global_object_get(void)
+Web_Cz *
+web_cz_global_object_get(void)
 {
    return _web_cz_global_object;
 }
@@ -10,58 +11,99 @@ webcz_global_object_get(void)
 static void *
 _param_add(const char *name, const char *value)
 {
-   Web_Cz *self = webcz_global_object_get();
-
-   param_t *cursor = self->paramaters;
+   param_t *c;
+   Web_Cz *self = web_cz_global_object_get();
 
    if (!name || !name[0] || !value || !value[0])
-     return self->paramaters;
+     return self->parameters;
 
-   if (!cursor)
+   c = self->parameters;
+
+   if (!c)
      {
-        self->paramaters = cursor = calloc(1, sizeof(param_t));
-        cursor->name = strdup(name);
-        cursor->value = strdup(value);
-        return self->paramaters;
+        self->parameters = c = calloc(1, sizeof(param_t));
+        c->name = strdup(name);
+        c->value = strdup(value);
+        c->next = NULL;
+        return self->parameters;
      }
 
-   for (cursor = self->paramaters; cursor->next; cursor = cursor->next);
+   for (c = self->parameters; c->next; c = c->next);
 
-   if (!cursor->next)
+   if (!c->next)
      {
-        cursor->next = calloc(1, sizeof(param_t));
-        cursor = cursor->next;
-        cursor->name = strdup(name);
-        cursor->value = strdup(value);
+        c->next = calloc(1, sizeof(param_t));
+        c = c->next;
+        c->name = strdup(name);
+        c->value = strdup(value);
+        c->next = NULL;
+        return self->parameters;
      }
 
-   return self->paramaters;
+   return NULL;
 }
-/* ********************************************* */
 
 char *
 web_cz_param(const char *name)
 {
-   Web_Cz *self = _web_cz_global_object;
+   param_t *c;
+   Web_Cz *self = web_cz_global_object_get();
+   if (!self)
+     return NULL;
 
-   param_t *cursor = self->paramaters->next;
-   while (cursor)
+   c = self->parameters;
+   while (c)
      {
-        if (!strcmp(cursor->name, name))
-          return cursor->value;
-        cursor = cursor->next;
+        if (!strcmp(c->name, name))
+          return c->value;
+        c = c->next;
      }
    return NULL;
 }
 
+static void
+_parse_request(char *req)
+{
+   char *pos, *start, *end;
+
+   pos = req;
+
+   while (1)
+     {
+        start = pos;
+        if (!start)
+          break;
+        char *name = start;
+        pos = strchr(start, '=');
+        if (pos)
+          *pos = '\0';
+        pos++;
+        char *value = pos;
+        end = strchr(pos, '&');
+        if (end)
+          *end = '\0';
+        _param_add(name, value);
+        if (!end)
+          break;
+        pos = end + 1;
+     }
+}
+
 bool web_cz_get(void)
 {
-   char *buffer = NULL;
+   Web_Cz *self;
    ssize_t buffer_size, len;
    char buf[CHUNK];
-   Web_Cz *self = _web_cz_global_object;
-   const char *method =  getenv("REQUEST_METHOD");
-   if (!method) return false;
+   const char *method;
+   char *buffer = NULL;
+
+   method = getenv("REQUEST_METHOD");
+   if (!method)
+     return false;
+
+   self = web_cz_global_object_get();
+   if (!self)
+     return false;
 
    buffer_size = 0;
 
@@ -87,26 +129,10 @@ bool web_cz_get(void)
         buffer = strdup(getenv("QUERY_STRING"));
      }
 
-   char *p, *start, *end;
+   _parse_request(buffer);
 
-   self->paramaters = calloc(1, sizeof(param_t));
-   p = buffer;
-   while (1)
-     {
-        start = p;
-        p = strchr(start, '=');
-        if (p)
-          *p = '\0';
-        char *name = start;
-        p++;
-        end = strchr(p, '&');
-        if (end)
-          *end = '\0';
-        char *value = p;
-        self->paramaters = _param_add(name, value);
-        if (!end) break;
-        p = end + 1;
-     }
+   if (buffer)
+     free(buffer);
 
    return true;
 }
@@ -114,21 +140,24 @@ bool web_cz_get(void)
 char *
 _cookie_optional(char *start, const char *key)
 {
-   char value[4096];
-   char *found;
+   char *value, *found;
+   ssize_t size;
 
    found = strstr(start, key);
    if (found)
      {
         found += strlen(key);
         start = found;
+
         while (found[0] != ';' && found[0] != '\0')
           found++;
 
-        ssize_t size = found - start;
+        size = found - start;
+        value = malloc(size);
         memcpy(value, start, size);
         value[size] = '\0';
-        return strdup(value); 
+
+        return value;
      }
 
    return NULL;
@@ -137,42 +166,36 @@ _cookie_optional(char *start, const char *key)
 cookie_t *
 web_cz_cookie(const char *name)
 {
-   char *cookies;
-   char *found;
+   char *cookies, *found, *start;
+   cookie_t *cookie;
    char key[4096];
-   char value[4096];
-   cookie_t *cookie = NULL; 
-   if (!getenv("HTTP_COOKIE")) return NULL;
+   ssize_t size;
+
+   if (!getenv("HTTP_COOKIE"))
+     return NULL;
 
    cookies = strdup(getenv("HTTP_COOKIE"));
    if (!cookies) 
      return NULL;
-  
-   cookie = calloc(1, sizeof(cookie_t));
 
+   cookie = calloc(1, sizeof(cookie_t));
    snprintf(key, sizeof(key), "%s=", name);
 
    found = strstr(cookies, key);
    if (!found)
      return NULL;
 
-   cookies = found;
-
-   char *start = found + strlen(key);
+   start = found + strlen(key);
 
    while (found[0] != ';' && found[0] != '\0')
      found++;
 
-   ssize_t size = found - start;
-   memcpy(value, start, size);
-   value[size] = '\0';
+   cookie->name = strdup(name);
 
-   cookie->name = strdup(key);
-   cookie->value = strdup(value);
-
-   cookie->expiry = _cookie_optional(cookies, "expiry=");
-   cookie->domain = _cookie_optional(cookies, "domain=");
-   cookie->path = _cookie_optional(cookies, "path=");
+   size = found - start;
+   cookie->value = malloc(size);
+   memcpy(cookie->value, start, size);
+   cookie->value[size] = '\0';
 
    free(cookies);
 
@@ -181,95 +204,126 @@ web_cz_cookie(const char *name)
 
 cookie_t *web_cz_cookie_add(cookie_t *cookie)
 {
-   Web_Cz *self = _web_cz_global_object;
+   Web_Cz *self;
+   cookie_t *c;
 
-   cookie_t *cursor = self->cookies;
-   if (!cursor)
+   self = web_cz_global_object_get();
+   if (!self)
+     return NULL;
+
+   if (!cookie->name || !cookie->name[0] ||
+       !cookie->value || !cookie->value[0])
+     return NULL;
+
+   c = self->cookies;
+   if (!c)
      {
-        if (!cookie->name || !cookie->name[0] ||
-            !cookie->value || !cookie->value[0]) return NULL;
+        self->cookies = c = calloc(1, sizeof(cookie_t));
+        memcpy(c, cookie, sizeof(cookie_t));
+        c->next = NULL;
 
-        self->cookies = cursor = calloc(1, sizeof(cookie_t));
-
-        cursor->name = strdup(cookie->name);
-        cursor->value = strdup(cookie->value);
-        if (cookie->expiry)
-          cursor->expiry = strdup(cookie->expiry);
-        if (cookie->domain)
-          cursor->domain = strdup(cookie->domain);
-        if (cookie->path)
-          cursor->path = strdup(cookie->path);
-
-        cursor->next = NULL;
         return self->cookies;
      }
 
-   for (cursor = self->cookies; cursor->next; cursor = cursor->next);
+   for (c = self->cookies; c->next; c = c->next);
 
-   if (!cursor->next)
+   if (!c->next)
      {
-        cursor->next = calloc(1, sizeof(cookie_t));
-        cursor = cursor->next;
-        cursor->name = strdup(cookie->name);
-        cursor->value = strdup(cookie->value);
-        if (cookie->expiry)
-          cursor->expiry = strdup(cookie->expiry);
-        if (cookie->domain)
-          cursor->domain = strdup(cookie->domain);
-        if (cookie->path)
-          cursor->path = strdup(cookie->path);
+        c->next = calloc(1, sizeof(cookie_t));
+        c = c->next;
 
-        cursor->next = NULL;
+        memcpy(c, cookie, sizeof(cookie_t));
+
+        c->next = NULL;
         return self->cookies;
      }
 
    return NULL;
 }
 
+cookie_t *web_cz_cookie_new(const char *name, const char *value)
+{
+   cookie_t *c = calloc(1, sizeof(cookie_t));
+   c->name = strdup(name);
+   c->value = strdup(value);
+
+   return c;
+}
+
+static char *
+_time_to_str(unsigned int secs)
+{
+   char buf[256];
+   struct timeval tv;
+   int seconds = secs;
+
+   seconds += time(NULL);
+
+   tv.tv_sec = seconds;
+   tv.tv_usec = 0;
+
+   strcpy(buf, ctime((time_t *) &tv));
+   buf[strlen(buf) -1 ] = '\0';
+
+   return strdup(buf);
+}
+
 void web_cz_content_type(const char *type)
 {
-   Web_Cz *self = _web_cz_global_object;
-   cookie_t *c = self->cookies;
+   Web_Cz *self;
+   cookie_t *c;
+
+   self = web_cz_global_object_get();
+   if (!self)
+     return;
+
+   c = self->cookies;
    while (c)
      {
         printf("Set-Cookie: ");
-        printf("%s=%s;", c->name, c->value);
+        printf(" %s=%s;", c->name, c->value);
         if (c->path)
-          printf("path=%s;", c->path);
+          printf(" path=%s;", c->path);
+        if (c->expires != 0)
+          {
+             char *t = _time_to_str(c->expires);
+             printf(" expires=%s;", t);
+             free(t);
+          }
         if (c->domain)
-          printf("domain=%s;", c->domain);
+          printf(" domain=%s;", c->domain);
 
         printf("\r\n");
         c = c->next;
      }
-   printf("Content-Type: %s\r\n\r\n", type);
 
+   printf("Content-type: %s\r\n\r\n", type);
 }
+
 void
 web_cz_free(void)
 {
-   Web_Cz *self = _web_cz_global_object;
+   cookie_t *old, *c;
+   Web_Cz *self;
+
+   self = web_cz_global_object_get();
    if (!self)
      return;
 
-   cookie_t *old, *c = self->cookies;
+   c = self->cookies;
    while (c)
      {
         if (c->name)
           free(c->name);
-        if (c->path)
-          free(c->path);
-        if (c->domain)
-          free(c->domain);
-        if (c->expiry)
-          free(c->expiry);
+        if (c->value)
+          free(c->value);
 
         old = c;
         c = c->next;
         free(old); 
      }
 
-   param_t *last, *p = self->paramaters;
+   param_t *last, *p = self->parameters;
    while (p)
      {
         if (p->name)
@@ -287,7 +341,7 @@ web_cz_free(void)
 }
 
 Web_Cz *
-WebCz_New(void)
+web_cz_new(void)
 {
    Web_Cz *self = calloc(1, sizeof(Web_Cz));
    if (!self)
@@ -300,9 +354,10 @@ WebCz_New(void)
    self->content_type = web_cz_content_type;
    self->free = web_cz_free;
 
+   self->cookie_new = web_cz_cookie_new;
+
    _web_cz_global_object = self;
- 
-   self->paramaters = calloc(1, sizeof(param_t *));
+
    return self;
 }
 
