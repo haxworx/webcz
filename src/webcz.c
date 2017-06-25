@@ -153,7 +153,7 @@ _cookie_optional(char *start, const char *key)
           found++;
 
         size = found - start;
-        value = malloc(size);
+        value = malloc(size + 1);
         memcpy(value, start, size);
         value[size] = '\0';
 
@@ -193,7 +193,7 @@ web_cz_cookie(const char *name)
    cookie->name = strdup(name);
 
    size = found - start;
-   cookie->value = malloc(size);
+   cookie->value = malloc(size + 1);
    memcpy(cookie->value, start, size);
    cookie->value[size] = '\0';
 
