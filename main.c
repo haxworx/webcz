@@ -3,8 +3,8 @@
 
 int main(void)
 {
-   const char *offering;
    Web_Cz *web_obj;
+   char *tmp;
    int count = 0;
 
    web_obj = web_cz_new();
@@ -17,10 +17,9 @@ int main(void)
    cookie_t *c2 = web_obj->cookie_new("Neil", "Whiskey!");
    web_obj->cookie_add(c2);
 
-   web_obj->get();
+   const char *offering = web_obj->param("offering");
 
-   offering = web_obj->param("offering");
-   const char *tmp = web_obj->param("count");
+   tmp = web_obj->param("count");
    if (tmp)
      count = atoi(tmp);
 

@@ -51,6 +51,10 @@ web_cz_param(const char *name)
    if (!self)
      return NULL;
 
+   if (!self->have_request)
+     {
+        self->get();
+     }
    c = self->parameters;
    while (c)
      {
@@ -129,10 +133,13 @@ bool web_cz_get(void)
         buffer = strdup(getenv("QUERY_STRING"));
      }
 
-   _parse_request(buffer);
+   if (buffer[0] && buffer[1])
+     _parse_request(buffer);
 
    if (buffer)
      free(buffer);
+
+   self->have_request = true;
 
    return true;
 }
