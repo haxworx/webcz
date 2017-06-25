@@ -23,6 +23,7 @@ struct _cookie_t {
    char *value;
    char *domain;
    char *path;
+   bool delete;
    time_t expires;
    cookie_t *next;
 };
@@ -33,6 +34,7 @@ typedef char *(*wcz_fn_param)(const char *);
 typedef cookie_t *(*wcz_fn_cookie)(const char *);
 typedef cookie_t *(*wcz_fn_cookie_add)(cookie_t *);
 typedef cookie_t *(*wcz_fn_cookie_new)(const char *, const char *);
+typedef void (*wcz_fn_cookie_remove)(const char *);
 typedef void (*wcz_fn_content_type)(const char *);
 
 typedef struct _Web_Cz {
@@ -44,9 +46,12 @@ typedef struct _Web_Cz {
    wcz_fn_free free;
 
    wcz_fn_cookie_new cookie_new;
+   wcz_fn_cookie_remove cookie_remove;
 
    param_t *parameters;
    cookie_t *cookies;
+
+   bool have_request;
 } Web_Cz;
 
 cookie_t *web_cz_cookie(const char *name);

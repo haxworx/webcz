@@ -209,6 +209,7 @@ web_cz_cookie(const char *name)
    return cookie;
 }
 
+
 cookie_t *web_cz_cookie_add(cookie_t *cookie)
 {
    Web_Cz *self;
@@ -218,8 +219,7 @@ cookie_t *web_cz_cookie_add(cookie_t *cookie)
    if (!self)
      return NULL;
 
-   if (!cookie->name || !cookie->name[0] ||
-       !cookie->value || !cookie->value[0])
+   if (!cookie->name || !cookie->value)
      return NULL;
 
    c = self->cookies;
@@ -231,6 +231,19 @@ cookie_t *web_cz_cookie_add(cookie_t *cookie)
 
         return self->cookies;
      }
+
+   for (c = self->cookies; c; c = c->next)
+      {
+         if (!strcmp(c->name, cookie->name))
+           {
+              cookie_t *next = c->next;
+              memcpy(c, cookie, sizeof(cookie_t));
+              if (next)
+                c->next = next;
+
+              return self->cookies;
+           }
+      }
 
    for (c = self->cookies; c->next; c = c->next);
 
@@ -257,6 +270,13 @@ cookie_t *web_cz_cookie_new(const char *name, const char *value)
    return c;
 }
 
+void web_cz_cookie_remove(const char *name)
+{
+   cookie_t *c = web_cz_cookie_new(name, "");
+   c->delete = true;
+   web_cz_cookie_add(c);
+}
+
 static char *
 _time_to_str(unsigned int secs)
 {
@@ -264,7 +284,8 @@ _time_to_str(unsigned int secs)
    struct timeval tv;
    int seconds = secs;
 
-   seconds += time(NULL);
+   if (secs)
+     seconds += time(NULL);
 
    tv.tv_sec = seconds;
    tv.tv_usec = 0;
@@ -287,18 +308,27 @@ void web_cz_content_type(const char *type)
    c = self->cookies;
    while (c)
      {
-        printf("Set-Cookie: ");
-        printf(" %s=%s;", c->name, c->value);
+        printf("Set-Cookie: %s=%s;", c->name, c->value);
+
         if (c->path)
           printf(" path=%s;", c->path);
+
         if (c->expires != 0)
           {
              char *t = _time_to_str(c->expires);
              printf(" expires=%s;", t);
              free(t);
           }
+
         if (c->domain)
           printf(" domain=%s;", c->domain);
+
+        if (c->delete)
+          {
+             char *t = _time_to_str(0);
+             printf(" expires=%s;", t);
+             free(t);
+          }
 
         printf("\r\n");
         c = c->next;
@@ -358,6 +388,7 @@ web_cz_new(void)
    self->param = web_cz_param;
    self->cookie = web_cz_cookie;
    self->cookie_add = web_cz_cookie_add;
+   self->cookie_remove = web_cz_cookie_remove;
    self->content_type = web_cz_content_type;
    self->free = web_cz_free;
 

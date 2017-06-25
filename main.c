@@ -23,6 +23,9 @@ int main(void)
    if (tmp)
      count = atoi(tmp);
 
+   web_obj->cookie_remove("AL");
+   web_obj->cookie_remove("Neil");
+
    web_obj->content_type("text/plain");
   
    if (offering && count)
