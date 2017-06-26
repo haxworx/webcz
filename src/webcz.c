@@ -347,7 +347,7 @@ web_cz_session_new(const char *name, unsigned long duration)
    cookie_t *session_cookie;
    unsigned long expiration, time_now;
    struct stat st;
-   Strbuf *path, *buf;
+   Strbuf *path;
    FILE *f;
    unsigned char key[MD5_DIGEST_LENGTH];
    char key_plaintext[MD5_DIGEST_LENGTH * 2 + 1];
@@ -365,7 +365,7 @@ web_cz_session_new(const char *name, unsigned long duration)
 
    MD5_Update(&ctx, secret, strlen(secret));
    MD5_Update(&ctx, name, strlen(name));
-   MD5_Update(&ctx, &time_now, sizeof(unsigned long));
+   //MD5_Update(&ctx, &time_now, sizeof(unsigned long));
    MD5_Final(key, &ctx);
 
    j = 0;
@@ -378,7 +378,6 @@ web_cz_session_new(const char *name, unsigned long duration)
    key_plaintext[j] = 0;
 
    session_cookie = self->cookie_new(name, key_plaintext);
-   session_cookie->is_session = true;
    session_cookie->expires = duration;
 
    expiration = duration + time_now;
@@ -396,17 +395,12 @@ web_cz_session_new(const char *name, unsigned long duration)
         unlink(strbuf_string_get(path));
      }
 
-   buf = strbuf_new();
-
-   strbuf_append_printf(buf, SESSION_FILE_FORMAT, key_plaintext, expiration);
-
    f = fopen(strbuf_string_get(path), "w");
 
-   fprintf(f, "%s", strbuf_string_get(buf));
+   fprintf(f, SESSION_FILE_FORMAT, key_plaintext, expiration);
 
    fclose(f);
 
-   strbuf_free(buf);
    strbuf_free(path);
 }
 
@@ -440,6 +434,18 @@ web_cz_session_destroy(const char *name)
    strbuf_free(path);
 }
 
+static const char *
+_parse_session_cookie(char *buf, unsigned long *expires)
+{
+   char *local_key = buf;
+   char *local_key_end = strchr(buf, '\t');
+   *local_key_end = '\0';
+
+   *expires = atol(local_key_end + 1);
+
+   return local_key;
+}
+
 bool
 web_cz_session_check(const char *name)
 {
@@ -457,7 +463,8 @@ web_cz_session_check(const char *name)
      return false;
 
    session_cookie = self->cookie(name);
-   if (!session_cookie) return false;
+   if (!session_cookie)
+     return false;
 
    path = strbuf_new();
    strbuf_append_printf(path, "sessions/%s", name);
@@ -477,21 +484,14 @@ web_cz_session_check(const char *name)
 
    if (lines != 1)
      {
-        // broken sesion file
+        // broken session file
         goto out;
      }
 
-   char *local_key = buf;
-   char *local_key_end = strchr(buf, '\t');
-
-   *local_key_end = '\0';
-
-   char *local_expires = local_key_end + 1;
-
-   unsigned long expires = atol(local_expires);
-
+   unsigned long expires = 0;
+   const char *local_key = _parse_session_cookie(buf, &expires);
    if ((!strcmp(local_key, session_cookie->value) &&
-       (expires < time(NULL))))
+       (expires > (unsigned long)time(NULL))))
      {
         status = true;
      }

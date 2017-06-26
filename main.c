@@ -26,7 +26,6 @@ int main(void)
      count = atoi(tmp);
 
    web_obj->cookie_remove("Random");
-
    int session = web_obj->session_check("netstar");
   
    web_obj->content_type("text/plain");

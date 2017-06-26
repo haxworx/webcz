@@ -28,7 +28,6 @@ struct _cookie_t {
    char *domain;
    char *path;
    bool delete;
-   bool is_session;
    time_t expires;
    cookie_t *next;
 };
