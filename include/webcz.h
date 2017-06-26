@@ -48,16 +48,18 @@ typedef struct _Web_Cz {
    wcz_fn_get get;   
    wcz_fn_param param;
    wcz_fn_cookie cookie;  
-   wcz_fn_cookie_add cookie_add;
-   wcz_fn_content_type content_type;
-   wcz_fn_free free;
 
    wcz_fn_cookie_new cookie_new;
+   wcz_fn_cookie_add cookie_add;
    wcz_fn_cookie_remove cookie_remove;
 
    wcz_fn_session_new session_new;
    wcz_fn_session_destroy session_destroy;
    wcz_fn_session_check session_check;
+   
+   wcz_fn_content_type content_type;
+   
+   wcz_fn_free free;
 
    param_t *parameters;
    cookie_t *cookies;

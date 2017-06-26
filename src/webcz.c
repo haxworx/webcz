@@ -559,16 +559,18 @@ web_cz_new(void)
    self->get = web_cz_get;
    self->param = web_cz_param;
    self->cookie = web_cz_cookie;
-   self->cookie_add = web_cz_cookie_add;
-   self->cookie_remove = web_cz_cookie_remove;
-   self->content_type = web_cz_content_type;
-   self->free = web_cz_free;
 
    self->cookie_new = web_cz_cookie_new;
+   self->cookie_add = web_cz_cookie_add;
+   self->cookie_remove = web_cz_cookie_remove;
 
    self->session_new = web_cz_session_new;
    self->session_destroy = web_cz_session_destroy;
    self->session_check = web_cz_session_check;
+
+   self->content_type = web_cz_content_type;
+
+   self->free = web_cz_free;
 
    _web_cz_global_object = self;
 
