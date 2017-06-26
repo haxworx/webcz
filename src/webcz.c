@@ -134,6 +134,10 @@ bool web_cz_get(void)
      {
         buffer = strdup(getenv("QUERY_STRING"));
      }
+   else
+    {
+       return false;
+    }
 
    if (buffer[0] && buffer[1])
      _parse_request(buffer);
@@ -359,13 +363,17 @@ web_cz_session_new(const char *name, unsigned long duration)
    if (!self)
      return;
 
+   /* Exists and is valid */
+   if (self->session_check(name))
+     return;
+
    MD5_Init(&ctx);
 
    time_now = time(NULL);
 
    MD5_Update(&ctx, secret, strlen(secret));
    MD5_Update(&ctx, name, strlen(name));
-   //MD5_Update(&ctx, &time_now, sizeof(unsigned long));
+   MD5_Update(&ctx, &time_now, sizeof(unsigned long));
    MD5_Final(key, &ctx);
 
    j = 0;
