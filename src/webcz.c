@@ -1,4 +1,6 @@
 #include "../include/webcz.h"
+#include "../include/strbuf.h"
+#include <openssl/md5.h>
 
 Web_Cz *_web_cz_global_object = NULL;
 
@@ -209,7 +211,6 @@ web_cz_cookie(const char *name)
    return cookie;
 }
 
-
 cookie_t *web_cz_cookie_add(cookie_t *cookie)
 {
    Web_Cz *self;
@@ -337,6 +338,169 @@ void web_cz_content_type(const char *type)
    printf("Content-type: %s\r\n\r\n", type);
 }
 
+#define SESSION_FILE_FORMAT "%s\t%lu\n"
+
+void
+web_cz_session_new(const char *name, unsigned long duration)
+{
+   Web_Cz *self;
+   cookie_t *session_cookie;
+   unsigned long expiration, time_now;
+   struct stat st;
+   Strbuf *path, *buf;
+   FILE *f;
+   unsigned char key[MD5_DIGEST_LENGTH];
+   char key_plaintext[MD5_DIGEST_LENGTH * 2 + 1];
+   MD5_CTX ctx;
+   int i, j;
+   const char *secret = "HASH_SECRET";
+
+   self = web_cz_global_object_get();
+   if (!self)
+     return;
+
+   MD5_Init(&ctx);
+
+   time_now = time(NULL);
+
+   MD5_Update(&ctx, secret, strlen(secret));
+   MD5_Update(&ctx, name, strlen(name));
+   MD5_Update(&ctx, &time_now, sizeof(unsigned long));
+   MD5_Final(key, &ctx);
+
+   j = 0;
+   for (i = 0; i < MD5_DIGEST_LENGTH; i++)
+     {
+       snprintf(&key_plaintext[j], sizeof(key_plaintext), "%02x", (unsigned int) key[i]);
+       j += 2;
+     }
+
+   key_plaintext[j] = 0;
+
+   session_cookie = self->cookie_new(name, key_plaintext);
+   session_cookie->is_session = true;
+   session_cookie->expires = duration;
+
+   expiration = duration + time_now;
+
+   self->cookie_add(session_cookie);
+
+   // store a copy on disk
+
+   path = strbuf_new();
+
+   strbuf_append_printf(path, "sessions/%s", name);
+
+   if (stat(strbuf_string_get(path), &st) != -1)
+     {
+        unlink(strbuf_string_get(path));
+     }
+
+   buf = strbuf_new();
+
+   strbuf_append_printf(buf, SESSION_FILE_FORMAT, key_plaintext, expiration);
+
+   f = fopen(strbuf_string_get(path), "w");
+
+   fprintf(f, "%s", strbuf_string_get(buf));
+
+   fclose(f);
+
+   strbuf_free(buf);
+   strbuf_free(path);
+}
+
+void
+web_cz_session_destroy(const char *name)
+{
+   Web_Cz *self;
+   cookie_t *session_cookie;
+   struct stat st;
+   Strbuf *path;
+
+   self = web_cz_global_object_get();
+   if (!self)
+     return;
+
+   session_cookie = self->cookie(name);
+   if (!session_cookie) { }
+
+   self->cookie_remove(name);
+
+   // remove saved copy
+   path = strbuf_new();
+
+   strbuf_append_printf(path, "sessions/%s", name);
+
+   if (stat(strbuf_string_get(path), &st) != -1)
+     {
+        unlink(strbuf_string_get(path));
+     }
+
+   strbuf_free(path);
+}
+
+bool
+web_cz_session_check(const char *name)
+{
+   Web_Cz *self;
+   cookie_t *session_cookie;
+   struct stat st;
+   Strbuf *path;
+   char buf[8192];
+   FILE *f;
+   int lines = 0;
+   bool status = false;
+
+   self = web_cz_global_object_get();
+   if (!self)
+     return false;
+
+   session_cookie = self->cookie(name);
+   if (!session_cookie) return false;
+
+   path = strbuf_new();
+   strbuf_append_printf(path, "sessions/%s", name);
+
+   if (stat(strbuf_string_get(path), &st) == -1)
+     return false;
+
+   f = fopen(strbuf_string_get(path), "r");
+
+   while ((fgets(buf, sizeof(buf), f)) != NULL)
+     {
+        lines++;
+     }
+
+   fclose(f);
+   buf[strlen(buf) -1 ] = '\0';
+
+   if (lines != 1)
+     {
+        // broken sesion file
+        goto out;
+     }
+
+   char *local_key = buf;
+   char *local_key_end = strchr(buf, '\t');
+
+   *local_key_end = '\0';
+
+   char *local_expires = local_key_end + 1;
+
+   unsigned long expires = atol(local_expires);
+
+   if ((!strcmp(local_key, session_cookie->value) &&
+       (expires < time(NULL))))
+     {
+        status = true;
+     }
+out:
+   strbuf_free(path);
+
+   return status;
+}
+
 void
 web_cz_free(void)
 {
@@ -393,6 +557,10 @@ web_cz_new(void)
    self->free = web_cz_free;
 
    self->cookie_new = web_cz_cookie_new;
+
+   self->session_new = web_cz_session_new;
+   self->session_destroy = web_cz_session_destroy;
+   self->session_check = web_cz_session_check;
 
    _web_cz_global_object = self;
 

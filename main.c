@@ -16,6 +16,8 @@ int main(void)
    
    cookie_t *c2 = web_obj->cookie_new("Neil", "Whiskey!");
    web_obj->cookie_add(c2);
+   web_obj->session_destroy("random_session");
+   web_obj->session_new("netstar", 3600);
 
    const char *offering = web_obj->param("offering");
 
@@ -23,11 +25,11 @@ int main(void)
    if (tmp)
      count = atoi(tmp);
 
-   web_obj->cookie_remove("AL");
-   web_obj->cookie_remove("Neil");
+   web_obj->cookie_remove("Random");
 
-   web_obj->content_type("text/plain");
+   int session = web_obj->session_check("netstar");
   
+   web_obj->content_type("text/plain");
    if (offering && count)
      printf("it is %s and %d\n", offering, count);
 
@@ -41,6 +43,8 @@ int main(void)
      {
         printf("Got value %s\n", test->value);
      }
+
+   printf("session is %s\n", (session ? "OKAY" : "BAD"));
 
    web_obj->free();
 

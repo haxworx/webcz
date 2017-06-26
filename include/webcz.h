@@ -28,6 +28,7 @@ struct _cookie_t {
    char *domain;
    char *path;
    bool delete;
+   bool is_session;
    time_t expires;
    cookie_t *next;
 };
@@ -40,6 +41,9 @@ typedef cookie_t *(*wcz_fn_cookie_add)(cookie_t *);
 typedef cookie_t *(*wcz_fn_cookie_new)(const char *, const char *);
 typedef void (*wcz_fn_cookie_remove)(const char *);
 typedef void (*wcz_fn_content_type)(const char *);
+typedef void (*wcz_fn_session_new)(const char *, unsigned long);
+typedef void (*wcz_fn_session_destroy)(const char *);
+typedef bool (*wcz_fn_session_check)(const char *);
 
 typedef struct _Web_Cz {
    wcz_fn_get get;   
@@ -51,6 +55,10 @@ typedef struct _Web_Cz {
 
    wcz_fn_cookie_new cookie_new;
    wcz_fn_cookie_remove cookie_remove;
+
+   wcz_fn_session_new session_new;
+   wcz_fn_session_destroy session_destroy;
+   wcz_fn_session_check session_check;
 
    param_t *parameters;
    cookie_t *cookies;
