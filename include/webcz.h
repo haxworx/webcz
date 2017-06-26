@@ -1,11 +1,15 @@
 #ifndef __WEB_CZ__
 #define __WEB_CZ__
+#define _POSIX_C_SOURCE  200809L
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <time.h>
 #include <fcntl.h>
 
 typedef struct _param_t param_t;
