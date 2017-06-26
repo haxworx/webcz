@@ -4,7 +4,7 @@ OBJECTS_DIR=objects
 VERSION=0.1
 SRC_DIR=src
 PKGS=openssl
-OBJECTS=main.o webcz.o strbuf.o template.o
+OBJECTS=main.o webcz.o strbuf.o
 
 FLAGS = $(shell pkg-config --libs --cflags $(PKGS))
 INCLUDES = $(shell pkg-config --cflags $(PKGS))
@@ -26,9 +26,6 @@ webcz.o: $(SRC_DIR)/webcz.c
 
 strbuf.o: $(SRC_DIR)/strbuf.c
 	$(CC) -c $(CFLAGS) $(SRC_DIR)/strbuf.c -o $(OBJECTS_DIR)/$@
-
-template.o: $(SRC_DIR)/template.c
-	$(CC) -c $(CFLAGS) $(SRC_DIR)/template.c -o $(OBJECTS_DIR)/$@
 
 clean:
 	-rm $(PROGRAM)
