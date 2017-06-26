@@ -21,7 +21,7 @@ strbuf_append(Strbuf *buf, const char *string)
 
    buf->len += len;
 
-   buf->data = realloc(buf->data, buf->len);
+   buf->data = realloc(buf->data, buf->len + 1);
 
    memcpy(&buf->data[buf->len - len], string, len);
 }
