@@ -278,7 +278,7 @@ cookie_t *web_cz_cookie_new(const char *name, const char *value)
 
 void web_cz_cookie_remove(const char *name)
 {
-   cookie_t *c = web_cz_cookie_new(name, "");
+   cookie_t *c = web_cz_cookie_new(name, "0");
    c->delete = true;
    web_cz_cookie_add(c);
 }
