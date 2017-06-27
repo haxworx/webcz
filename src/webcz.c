@@ -53,9 +53,9 @@ web_cz_param(const char *name)
    if (!self)
      return NULL;
 
-   if (!self->have_request)
+   if (!self->cgi.have_request)
      {
-        self->get();
+        self->cgi.get();
      }
    c = self->parameters;
    while (c)
@@ -145,7 +145,7 @@ bool web_cz_get(void)
    if (buffer)
      free(buffer);
 
-   self->have_request = true;
+   self->cgi.have_request = true;
 
    return true;
 }
@@ -271,6 +271,7 @@ cookie_t *web_cz_cookie_new(const char *name, const char *value)
    cookie_t *c = calloc(1, sizeof(cookie_t));
    c->name = strdup(name);
    c->value = strdup(value);
+   c->self = c;
 
    return c;
 }
@@ -364,7 +365,7 @@ web_cz_session_new(const char *name, unsigned long duration)
      return;
 
    /* Exists and is valid */
-   if (self->session_check(name))
+   if (self->session.check(name))
      return;
 
    MD5_Init(&ctx);
@@ -385,12 +386,12 @@ web_cz_session_new(const char *name, unsigned long duration)
 
    key_plaintext[j] = 0;
 
-   session_cookie = self->cookie_new(name, key_plaintext);
+   session_cookie = self->cookie.new(name, key_plaintext);
    session_cookie->expires = duration;
 
    expiration = duration + time_now;
 
-   self->cookie_add(session_cookie);
+   self->cookie.add(session_cookie);
 
    // store a copy on disk
 
@@ -424,10 +425,10 @@ web_cz_session_destroy(const char *name)
    if (!self)
      return;
 
-   session_cookie = self->cookie(name);
+   session_cookie = self->cookie.get(name);
    if (!session_cookie) { }
 
-   self->cookie_remove(name);
+   self->cookie.remove(name);
 
    // remove saved copy
    path = strbuf_new();
@@ -470,7 +471,7 @@ web_cz_session_check(const char *name)
    if (!self)
      return false;
 
-   session_cookie = self->cookie(name);
+   session_cookie = self->cookie.get(name);
    if (!session_cookie)
      return false;
 
@@ -549,6 +550,30 @@ web_cz_free(void)
    _web_cz_global_object = NULL;
 }
 
+void
+web_cz_init(Web_Cz *w)
+{
+   Web_Cz *self = w;
+
+   self->cgi.get = web_cz_get;
+   self->cgi.param = web_cz_param;
+
+   self->cookie.new = web_cz_cookie_new;
+   self->cookie.add = web_cz_cookie_add;
+   self->cookie.remove = web_cz_cookie_remove;
+   self->cookie.get = web_cz_cookie;
+
+   self->session.new = web_cz_session_new;
+   self->session.destroy = web_cz_session_destroy;
+   self->session.check = web_cz_session_check;
+
+   self->headers_display = web_cz_content_type;
+
+   self->free = web_cz_free;
+
+   _web_cz_global_object = self;
+}
+
 Web_Cz *
 web_cz_new(void)
 {
@@ -556,23 +581,7 @@ web_cz_new(void)
    if (!self)
      return NULL;
 
-   self->get = web_cz_get;
-   self->param = web_cz_param;
-   self->cookie = web_cz_cookie;
-
-   self->cookie_new = web_cz_cookie_new;
-   self->cookie_add = web_cz_cookie_add;
-   self->cookie_remove = web_cz_cookie_remove;
-
-   self->session_new = web_cz_session_new;
-   self->session_destroy = web_cz_session_destroy;
-   self->session_check = web_cz_session_check;
-
-   self->content_type = web_cz_content_type;
-
-   self->free = web_cz_free;
-
-   _web_cz_global_object = self;
+   web_cz_init(self);
 
    return self;
 }

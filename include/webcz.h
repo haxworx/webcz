@@ -23,6 +23,7 @@ struct _param_t {
 
 typedef struct _cookie_t cookie_t;
 struct _cookie_t {
+   cookie_t *self;
    char *name;
    char *value;
    char *domain;
@@ -30,6 +31,8 @@ struct _cookie_t {
    bool delete;
    time_t expires;
    cookie_t *next;
+   void *add;
+   void *remove;
 };
 
 typedef void (*wcz_fn_free)(void);
@@ -45,26 +48,32 @@ typedef void (*wcz_fn_session_destroy)(const char *);
 typedef bool (*wcz_fn_session_check)(const char *);
 
 typedef struct _Web_Cz {
-   wcz_fn_get get;   
-   wcz_fn_param param;
-   wcz_fn_cookie cookie;  
+   struct {
+      wcz_fn_get get;
+      wcz_fn_param param;
+      bool have_request;
+   } cgi;
 
-   wcz_fn_cookie_new cookie_new;
-   wcz_fn_cookie_add cookie_add;
-   wcz_fn_cookie_remove cookie_remove;
+   struct {
+      wcz_fn_cookie get;
+      wcz_fn_cookie_new new;
+      wcz_fn_cookie_add add;
+      wcz_fn_cookie_remove remove;
+   } cookie;
 
-   wcz_fn_session_new session_new;
-   wcz_fn_session_destroy session_destroy;
-   wcz_fn_session_check session_check;
+   struct {
+      wcz_fn_session_new new;
+      wcz_fn_session_destroy destroy;
+      wcz_fn_session_check check;
+   } session;
    
-   wcz_fn_content_type content_type;
+   wcz_fn_content_type headers_display;
    
    wcz_fn_free free;
 
    param_t *parameters;
    cookie_t *cookies;
 
-   bool have_request;
 } Web_Cz;
 
 cookie_t *web_cz_cookie(const char *name);
@@ -78,6 +87,8 @@ bool web_cz_get(void);
 void web_cz_content_type(const char *type);
 
 Web_Cz *web_cz_new(void);
+
+void web_cz_init(Web_Cz *obj);
 
 Web_Cz *web_cz_global_object_get();
 

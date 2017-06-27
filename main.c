@@ -1,4 +1,3 @@
-#include "include/strbuf.h"
 #include "include/webcz.h"
 
 int main(void)
@@ -9,35 +8,39 @@ int main(void)
 
    web_obj = web_cz_new();
 
-   cookie_t *c = web_obj->cookie_new("AL", "Really nice!");
+   cookie_t *c = web_obj->cookie.new("AL", "Really nice!");
    c->path = "/";
    c->expires = 3600;
-   web_obj->cookie_add(c);
+   web_obj->cookie.add(c);
    
-   cookie_t *c2 = web_obj->cookie_new("Neil", "Whiskey!");
-   web_obj->cookie_add(c2);
-   web_obj->session_destroy("random_session");
-   web_obj->session_new("netstar", 3600);
+   cookie_t *c2 = web_obj->cookie.new("Ed", "Skateboard!");
+   web_obj->cookie.add(c2);
 
-   const char *offering = web_obj->param("offering");
+//   web_obj->session.destroy("netstar");
+   web_obj->session.new("netstar", 3600);
 
-   tmp = web_obj->param("count");
+   const char *offering = web_obj->cgi.param("offering");
+
+   tmp = web_obj->cgi.param("count");
    if (tmp)
      count = atoi(tmp);
 
-   web_obj->cookie_remove("Random");
-   int session = web_obj->session_check("netstar");
+   web_obj->cookie.remove("Random");
+   int session = web_obj->session.check("netstar");
   
-   web_obj->content_type("text/plain");
+   /* BEGIN output */
+   web_obj->headers_display("text/plain");
+
+
    if (offering && count)
      printf("it is %s and %d\n", offering, count);
 
-   cookie_t *test = web_obj->cookie("Neil");
+   cookie_t *test = web_obj->cookie.get("Ed");
    if (test) 
      {
         printf("Got value %s\n", test->value);  
      } 
-   test = web_obj->cookie("AL");
+   test = web_obj->cookie.get("AL");
    if (test)
      {
         printf("Got value %s\n", test->value);
