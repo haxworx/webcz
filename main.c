@@ -27,7 +27,7 @@ int main(void)
 
    web_obj->cookie.remove("Random");
    int session = web_obj->session.check("netstar");
- f
+
    /* BEGIN output */
    web_obj->headers_display("text/plain");
 
