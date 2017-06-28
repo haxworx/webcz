@@ -12,7 +12,7 @@ int main(void)
    c->path = "/";
    c->expires = 3600;
    web_obj->cookie.add(c);
-   
+   ggg
    cookie_t *c2 = web_obj->cookie.new("Ed", "Skateboard!");
    web_obj->cookie.add(c2);
 
@@ -27,19 +27,18 @@ int main(void)
 
    web_obj->cookie.remove("Random");
    int session = web_obj->session.check("netstar");
-  
+
    /* BEGIN output */
    web_obj->headers_display("text/plain");
-
 
    if (offering && count)
      printf("it is %s and %d\n", offering, count);
 
    cookie_t *test = web_obj->cookie.get("Ed");
-   if (test) 
+   if (test)
      {
-        printf("Got value %s\n", test->value);  
-     } 
+        printf("Got value %s\n", test->value);
+     }
    test = web_obj->cookie.get("AL");
    if (test)
      {
