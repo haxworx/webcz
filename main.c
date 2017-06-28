@@ -12,7 +12,7 @@ int main(void)
    c->path = "/";
    c->expires = 3600;
    web_obj->cookie.add(c);
-   ggg
+
    cookie_t *c2 = web_obj->cookie.new("Ed", "Skateboard!");
    web_obj->cookie.add(c2);
 
