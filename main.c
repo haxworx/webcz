@@ -3,9 +3,9 @@
 int main(void)
 {
    Web_Cz *w_obj;
-   char *tmp;
-   int count = 0;
-
+   const char *count, *offering;
+   bool session;
+   
    w_obj = web_cz_new();
 
    cookie_t *c = w_obj->cookie.new("AL", "Really nice!");
@@ -18,20 +18,19 @@ int main(void)
 //   w_obj->session.destroy("netstar");
    w_obj->session.new("netstar", 3600);
 
-   const char *offering = w_obj->cgi.param("offering");
+   offering = w_obj->cgi.param("offering");
 
-   tmp = w_obj->cgi.param("count");
-   if (tmp)
-     count = atoi(tmp);
+   count = w_obj->cgi.param("count");
 
    w_obj->cookie.remove("Random");
-   int session = w_obj->session.check("netstar");
+   
+   session = w_obj->session.check("netstar");
 
    /* BEGIN output */
    w_obj->headers_display("text/plain");
 
    if (offering && count)
-     printf("it is %s and %d\n", offering, count);
+     printf("it is %s and %d\n", offering, atoi(count));
 
    cookie_t *test = w_obj->cookie.get("Ed");
    if (test)
