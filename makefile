@@ -1,31 +1,36 @@
-PROGRAM=test.cgi
+PROGRAM=index.cgi
 CFLAGS=-g -ggdb3 -O0 -Wall -pedantic -std=c99
 OBJECTS_DIR=objects
 VERSION=0.1
 SRC_DIR=src
 PKGS=openssl
-OBJECTS=main.o webcz.o strbuf.o
-
 FLAGS = $(shell pkg-config --libs --cflags $(PKGS))
 INCLUDES = $(shell pkg-config --cflags $(PKGS))
+OBJECTS=objects/main.o objects/webcz.o objects/strbuf.o
 
-default: all
-	-mkdir sessions
-	chown www:www sessions
-	chown www:www $(PROGRAM)
+default: SETUP $(PROGRAM)
 	chmod +x $(PROGRAM)
 
-all: $(OBJECTS)
-	$(CC) $(CFLAGS) $(FLAGS) $(OBJECTS_DIR)/*.o -o $(PROGRAM)
+SETUP:
+	@echo "Building $(PROGRAM)";
+	if [ ! -d $(OBJECTS_DIR) ]; then \
+		mkdir $(OBJECTS_DIR); \
+	fi
+	if [ ! -d sessions ]; then \
+		mkdir sessions; \
+	fi
 
-main.o:	main.c
-	$(CC) -c $(CFLAGS) main.c -o $(OBJECTS_DIR)/$@
+$(PROGRAM): $(OBJECTS)
+	$(CC) $(FLAGS) $(OBJECTS) -o $@
 
-webcz.o: $(SRC_DIR)/webcz.c
-	$(CC) -c $(CFLAGS) $(INCLUDES) $(SRC_DIR)/webcz.c -o $(OBJECTS_DIR)/$@
+objects/main.o:	main.c
+	$(CC) -c $(CFLAGS) main.c -o $@
 
-strbuf.o: $(SRC_DIR)/strbuf.c
-	$(CC) -c $(CFLAGS) $(SRC_DIR)/strbuf.c -o $(OBJECTS_DIR)/$@
+objects/webcz.o: $(SRC_DIR)/webcz.c
+	$(CC) -c $(CFLAGS) $(INCLUDES) $(SRC_DIR)/webcz.c -o $@
+
+objects/strbuf.o: $(SRC_DIR)/strbuf.c
+	$(CC) -c $(CFLAGS) $(SRC_DIR)/strbuf.c -o $@
 
 clean:
 	-rm $(PROGRAM)
