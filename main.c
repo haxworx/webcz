@@ -121,7 +121,7 @@ _oracle(const char *path, const char *offering, int count)
         while (*start && *start++ != ' ');
         if (!start) { sequence[i] /= 2; continue; }
         end = strchr(start, ' ');
-        if (!end) { sequence[i] /= 2; continue }
+        if (!end) { sequence[i] /= 2; continue; }
         size_t len = end - start;      
         word = malloc(len);
         memcpy(word, start, len);
@@ -184,7 +184,7 @@ int main(void)
      {
         int count = atoi(length);
         if (strlen(offering) < 10)
-          result = "<h1>Please!</h1><p>This offering is too small (greater than 10 characters please!</p>";
+          result = "<h1>Please!</h1><p>This offering is too small (greater than 10 characters please!)</p>";
         else if (count <= 0 || count > 22)
           result = "<h1>Please!</h1>";
         else
