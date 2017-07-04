@@ -1,4 +1,4 @@
-PROGRAM=index.cgi
+PROGRAM=oracle.cgi
 CFLAGS=-g -ggdb3 -O0 -Wall -pedantic -std=c99
 OBJECTS_DIR=objects
 VERSION=0.1
@@ -9,7 +9,6 @@ INCLUDES = $(shell pkg-config --cflags $(PKGS))
 OBJECTS=objects/main.o objects/webcz.o objects/strbuf.o
 
 default: SETUP $(PROGRAM)
-	chmod +x $(PROGRAM)
 
 SETUP:
 	@echo "Building $(PROGRAM)";
@@ -21,7 +20,9 @@ SETUP:
 	fi
 
 $(PROGRAM): $(OBJECTS)
-	$(CC) $(FLAGS) $(OBJECTS) -o $@
+	$(CC) $(CFLAGS) $(FLAGS) $(OBJECTS) -o $@
+	chown www:www $(PROGRAM)
+	chmod +x $(PROGRAM)
 
 objects/main.o:	main.c
 	$(CC) -c $(CFLAGS) main.c -o $@
