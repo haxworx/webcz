@@ -20,34 +20,44 @@ _trim(char *word)
           }
      }
 }
+const char *conjunc[] = { "the", "and", "a", "that", "i", "if", "from", "was", "of", "not", "he", "for", "as", "you", "this", "but", "his", "they", "her", "she", "or", "an", "will", "my", "one", "all", "would", "their", "there", "thy", "thee", "thou", NULL };
+
+static int
+word_is_conjunc(const char *word)
+{
+   int j;
+
+   for (j = 0; conjunc[j] != NULL; j++)
+     if (!strcasecmp(word, conjunc[j]))
+       return 1;
+
+   return 0;
+}
 
 static int
 _word_check(char ** words, const char *word)
 {
    const char *p = word;
-   int i, j;
-
-   if (words)
-     {
-        for (i = 0; words[i]; i++)
-          {
-             if (!strcasecmp(word, words[i]))
-               return 0;
-             /* We can reuse wirds after ichunks of 8 */
-             if (i == 8)
-               for (j = 0; j < 8; j++)
-                 {
-                    free(words[j]);
-                    words[j] = NULL;
-                 }
-           }
-     }
+   int i;
 
    while (*p++)
      {
         if (p[0] == '.' || p[0] == ',' || p[0] == '\"' || p[0] == '\'' || p[0] == ';')
           return 0;
         if (*p == ':')
+          return 0;
+	if (*p == '?')
+          return 0;
+     }
+
+   if (words)
+     {
+        for (i = 0; words[i]; i++)
+          {
+	      if (!strcasecmp(words[i], word))
+		return 0;
+          }
+        if (i && word_is_conjunc(words[i - 1]) && word_is_conjunc(word))
           return 0;
      }
 
@@ -119,16 +129,33 @@ _oracle(const char *path, const char *offering, int count)
         char *start, *end;
         pos = start = map + sequence[i];
         while (*start && *start++ != ' ');
-        if (!start) { sequence[i] /= 2; continue; }
+        if (!start)
+	  {
+             sequence[i] = (int) *_generate_sequence(offering, 1, total_bytes);
+	     continue;
+          }
         end = strchr(start, ' ');
-        if (!end) { sequence[i] /= 2; continue; }
+        if (!end)
+          {
+             sequence[i] = (int) *_generate_sequence(offering, 1, total_bytes);
+	     continue;
+	  }
         size_t len = end - start;      
         word = malloc(len);
         memcpy(word, start, len);
         word[len] = '\0';
        _trim(word);
+
        if (_word_check(words, word))
          {
+	    if (i == (count - 1))
+	      {
+                 if (word_is_conjunc(word))
+		   {
+                      sequence[i] = (int) *_generate_sequence(offering, 1, total_bytes); 
+		      continue;
+		   }
+	      }
             words[i] = strdup(word);
             if (i != (count - 1))
               strbuf_append_printf(buf, "%s ", word);
@@ -138,7 +165,7 @@ _oracle(const char *path, const char *offering, int count)
          }
        else
          {
-            sequence[i] /= 3;
+            sequence[i] = (int ) *_generate_sequence(offering, 1, total_bytes);
             continue;
          }
        free(word); 
